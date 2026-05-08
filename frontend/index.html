@@ -501,7 +501,7 @@
 async fetchSBVRate() {
     try {
         const proxyUrl = 'https://api.allorigins.win/raw?url=';
-        const targetUrl = 'https://www.sbv.gov.vn/webcenter/portal/vi/menu/trangchu/ls';
+        const targetUrl = 'https://sbv.gov.vn/vi/l%C3%A3i-su%E1%BA%A5t1';
         const response = await fetch(proxyUrl + encodeURIComponent(targetUrl));
         const html = await response.text();
 
