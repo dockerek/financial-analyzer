@@ -45,6 +45,45 @@ flowchart TD
     D --> G[TAB Dashboard<br>Xem tổng quan sức khỏe]
     D --> H[TAB AI Consultant<br>Hỏi đáp với AI]
     D --> I[TAB Deep Risk<br>Phân tích rủi ro 7 nhóm]
-    
+
+flowchart TB
+    subgraph INPUT["📥 INPUT LAYER"]
+        A1[👤 User nhập data doanh nghiệp<br/>Tài sản, Nợ, Doanh thu, LN]
+        A2[🌐 Web Scraper<br/>BIDV, VCB, VPB, MBB, TCB]
+        A3[📡 API Vĩ mô<br/>World Bank, ExchangeRate, SBV]
+        A4[📂 Upload Excel<br/>Dòng tiền dự án]
+    end
+
+    subgraph PROCESS["⚙️ PROCESS LAYER"]
+        B1[🔄 Backend API Server<br/>Express.js + CORS]
+        B2[🗄️ Database<br/>loans.json]
+        B3[🕷️ Scraper Engine<br/>BaseScraper + Retry Mechanism]
+        B4[📊 Financial Engine<br/>ROE, ROA, D/E, ICR, NPV, IRR]
+        B5[🧠 Risk Engine<br/>Deep Risk 7 nhóm + Scoring]
+        B6[🤖 AI Engine<br/>Rule-based + Pattern Matching]
+    end
+
+    subgraph OUTPUT["📺 OUTPUT LAYER"]
+        C1[📈 Dashboard<br/>KPI Cards + Charts]
+        C2[🏦 Bank Compare<br/>Scoring + Comparison]
+        C3[🔍 Risk Assessment<br/>Quick Risk + Deep Risk]
+        C4[💡 AI Consultant<br/>Chat Interface]
+        C5[📊 NPV/IRR<br/>Investment Analysis]
+    end
+
+    INPUT --> PROCESS
+    PROCESS --> OUTPUT
+
+    A1 --> B1
+    A2 --> B3 --> B2 --> B1
+    A3 --> B1
+    A4 --> B4 --> B1
+
+    B1 --> B4 --> C1
+    B1 --> B4 --> C3
+    B1 --> B2 --> C2
+    B1 --> B5 --> C3
+    B1 --> B6 --> C4
+    B4 --> C5
     F --> J[Điền số tiền & thời hạn vay]
     J --> K[Hệ thống gợi ý gói vay phù hợp nhất]
