@@ -1,10 +1,17 @@
 {
-  "name": "financial-analyzer-pro",
-  "version": "2.0.0",
+  "name": "financial-analyzer-backend",
+  "version": "1.0.0",
+  "description": "Backend API with web scraping",
+  "main": "server.js",
   "scripts": {
-    "build": "cd backend && npm install",
-    "start": "node backend/server.js",
-    "scrape": "cd backend && node runOnce.js"
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "puppeteer": "^21.0.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
   },
   "engines": {
     "node": "18.x"
