@@ -8,3 +8,7 @@ build/
 .vscode/
 .idea/
 *.pid
+# Environment variables
+.env
+backend/.env
+*.env
