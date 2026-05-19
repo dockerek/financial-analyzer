@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+const axios = require('axios');
+require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 
@@ -92,16 +94,16 @@ app.post('/api/loans/refresh', async (req, res) => {
         { name: "VPBank", scraper: vpbankScraper },
         { name: "Sacombank", scraper: sacombankScraper }
     ];
-    
+
     const allLoans = [];
     let idCounter = 1;
     const results = [];
-    
+
     for (const bank of scrapers) {
         try {
             console.log(`🔄 Đang scrape ${bank.name}...`);
             const loans = await bank.scraper.scrape();
-            
+
             for (const loan of loans) {
                 allLoans.push({
                     id: idCounter++,
@@ -121,23 +123,23 @@ app.post('/api/loans/refresh', async (req, res) => {
                     loanTypes: ["collateral"]
                 });
             }
-            
+
             results.push({ bank: bank.name, status: 'success', count: loans.length });
             console.log(`✅ ${bank.name}: ${loans.length} gói vay`);
-            
+
         } catch (error) {
             console.error(`❌ ${bank.name} thất bại:`, error.message);
             results.push({ bank: bank.name, status: 'error', error: error.message });
         }
     }
-    
+
     if (allLoans.length > 0) {
         writeDatabase(allLoans);
     }
-    
-    res.json({ 
-        success: true, 
-        results, 
+
+    res.json({
+        success: true,
+        results,
         totalLoans: allLoans.length,
         message: 'Đã cập nhật dữ liệu từ web scraper!'
     });
@@ -151,7 +153,95 @@ app.post('/api/loans/reset', (req, res) => {
 
 // Khởi tạo database
 initDatabase();
+// ==================== AI CONSULTANT WITH DEEPSEEK API ====================
 
+/**
+ * API: AI Chat với DeepSeek
+ * POST /api/ai/chat
+ * Body: { message: "câu hỏi của người dùng" }
+ */
+app.post('/api/ai/chat', async (req, res) => {
+    const userMessage = req.body.message;
+
+    if (!userMessage) {
+        return res.status(400).json({
+            success: false,
+            error: 'Vui lòng nhập câu hỏi'
+        });
+    }
+
+    // System prompt - định nghĩa vai trò của AI
+    const systemPrompt = `Bạn là "Financial Analyzer Pro AI", một chuyên gia tư vấn tài chính cho doanh nghiệp vừa và nhỏ (SME) tại Việt Nam.
+
+Nhiệm vụ của bạn:
+1. Trả lời các câu hỏi về tài chính doanh nghiệp, vay vốn ngân hàng, quản lý rủi ro, dòng tiền.
+2. Đưa ra lời khuyên thực tế, dễ hiểu, phù hợp với bối cảnh Việt Nam.
+3. Trả lời bằng tiếng Việt, giọng chuyên nghiệp, thân thiện.
+
+Hãy trả lời câu hỏi của người dùng một cách hữu ích và chính xác.`;
+
+    try {
+        console.log(`🤖 Gọi DeepSeek API với câu hỏi: ${userMessage.substring(0, 100)}...`);
+
+        const response = await axios.post(
+            'https://api.deepseek.com/v1/chat/completions',
+            {
+                model: 'deepseek-chat',
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: userMessage }
+                ],
+                temperature: 0.7,
+                max_tokens: 1000,
+                stream: false
+            },
+            {
+                headers: {
+                    'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                timeout: 30000
+            }
+        );
+
+        const aiReply = response.data.choices[0].message.content;
+
+        res.json({
+            success: true,
+            reply: aiReply
+        });
+
+    } catch (error) {
+        console.error('DeepSeek API Error:', error.response?.data || error.message);
+
+        let fallbackReply = "Xin lỗi, tôi đang gặp sự cố kết nối. Vui lòng thử lại sau.";
+
+        if (error.response?.status === 401) {
+            fallbackReply = "Lỗi xác thực API. Vui lòng kiểm tra lại API Key.";
+        } else if (error.response?.status === 429) {
+            fallbackReply = "Đã vượt quá giới hạn sử dụng. Vui lòng thử lại sau vài phút.";
+        }
+
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            reply: fallbackReply
+        });
+    }
+});
+
+/**
+ * API: Kiểm tra trạng thái AI
+ * GET /api/ai/status
+ */
+app.get('/api/ai/status', (req, res) => {
+    const hasApiKey = !!process.env.DEEPSEEK_API_KEY;
+    res.json({
+        success: true,
+        aiEnabled: hasApiKey,
+        message: hasApiKey ? 'AI Consultant sẵn sàng' : 'Chưa cấu hình API Key'
+    });
+});
 // Chạy server
 app.listen(PORT, () => {
     console.log(`🚀 Server chạy tại http://localhost:${PORT}`);
