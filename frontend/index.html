@@ -2190,10 +2190,10 @@
                     totalScore += leverageScore;
                     scoreDetails.leverage = { raw: leverageScore, weighted: leverageScore, max: 10 };
 
-                    // 7. Thu nhập (5%)
+                    // 7. Thu nhập (10%)
                     const incomeScore = calculateIncomeScore(b.minIncome);
                     totalScore += incomeScore;
-                    scoreDetails.income = { raw: incomeScore, weighted: incomeScore, max: 5 };
+                    scoreDetails.income = { raw: incomeScore, weighted: incomeScore, max: 10 };
 
                     // 8. Phí xử lý (5%)
                     const feeScore = calculateFeeScore(b.processingFee);
@@ -2227,7 +2227,7 @@
 • ${isVi ? 'Thời hạn' : 'Loan term'}: ${b.scoreDetails.term.raw.toFixed(1)}/10
 • ${isVi ? 'Tài sản đảm bảo' : 'Collateral'}: ${b.scoreDetails.collateral.raw.toFixed(1)}/10
 • ${isVi ? 'Đòn bẩy DN' : 'Leverage'}: ${b.scoreDetails.leverage.raw.toFixed(1)}/10
-• ${isVi ? 'Thu nhập' : 'Income'}: ${b.scoreDetails.income.raw.toFixed(1)}/5
+• ${isVi ? 'Thu nhập' : 'Income'}: ${b.scoreDetails.income.raw.toFixed(1)}/10
 • ${isVi ? 'Phí xử lý' : 'Processing fee'}: ${b.scoreDetails.fee.raw.toFixed(1)}/5`;
 
                     html += `<div class="bank-card${idx === 0 ? ' recommended' : ''}" onclick="App.showBankDetail(${b.id})" style="cursor:pointer;">
@@ -2262,7 +2262,7 @@
             ${isVi ? '• Thời hạn (10%) - Thời hạn càng dài càng linh hoạt' : '• Loan term (10%) - Longer term gives more flexibility'}<br>
             ${isVi ? '• Tài sản đảm bảo (10%) - LTV càng thấp càng an toàn' : '• Collateral (10%) - Lower LTV is safer'}<br>
             ${isVi ? '• Đòn bẩy doanh nghiệp (10%) - D/E càng thấp càng tốt' : '• Business leverage (10%) - Lower D/E is better'}<br>
-            ${isVi ? '• Thu nhập (5%) - Đáp ứng yêu cầu tối thiểu' : '• Income (5%) - Meets minimum requirement'}<br>
+            ${isVi ? '• Thu nhập (10%) - Đáp ứng yêu cầu tối thiểu' : '• Income (10%) - Meets minimum requirement'}<br>
             ${isVi ? '• Phí xử lý (5%) - Phí càng thấp càng tốt' : '• Processing fee (5%) - Lower is better'}
         </div>
     `;
