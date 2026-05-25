@@ -1522,26 +1522,32 @@
             async refreshFromWebScraper() {
                 const btn = document.getElementById('refreshScraperBtn');
                 if (!btn) return;
+
                 const originalText = btn.innerHTML;
                 btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Đang cập nhật từ ngân hàng...';
+                btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Đang cập nhật...';
 
                 try {
                     const response = await fetch(`${API_URL}/loans/refresh`, { method: 'POST' });
                     const result = await response.json();
+
                     if (result.success) {
-                        // Tải lại dữ liệu từ backend sau khi scrape
+                        // ✅ THÊM: Gọi API để lấy dữ liệu mới
                         const loadResponse = await fetch(`${API_URL}/loans`);
                         if (loadResponse.ok) {
                             const newData = await loadResponse.json();
+
+                            // Cập nhật BANK_DATABASE
                             if (newData && newData.length > 0) {
-                                App.BANK_DATABASE = newData;
-                                App.nextId = Math.max(...newData.map(l => l.id), 0) + 1;
-                                saveToStorage('fap_bank_db', App.BANK_DATABASE);
-                                App.updateBankListDisplay();
-                                App.compareBankLoans();
-                                const updateTime = new Date().toLocaleString('vi-VN');
-                                alert(`✅ Cập nhật thành công! Đã cập nhật ${result.totalLoans || newData.length} gói vay từ ngân hàng.\n📅 Thời gian cập nhật: ${updateTime}`);
+                                this.BANK_DATABASE = newData;
+                                // Lưu vào localStorage
+                                saveToStorage('fap_bank_db', this.BANK_DATABASE);
+
+                                // ✅ QUAN TRỌNG: Cập nhật giao diện
+                                this.updateBankListDisplay();  // Cập nhật tab Admin DB
+                                this.compareBankLoans();        // Cập nhật tab Bank Compare
+
+                                alert(`✅ Cập nhật thành công! Đã cập nhật ${newData.length} gói vay.`);
                             } else {
                                 alert('⚠️ Không có dữ liệu mới từ web scraper.');
                             }
@@ -1558,6 +1564,216 @@
                 }
             },
 
+            // ==================== DATABASE MANAGEMENT ====================
+            updateBankListDisplay() {
+                const container = document.getElementById('bankListContainer');
+                const countEl = document.getElementById('bankCount');
+                if (!container) return;
+
+                const isVi = this.currentLang === 'vi';
+                const db = this.BANK_DATABASE;
+                if (countEl) countEl.textContent = db.length;
+
+                if (db.length === 0) {
+                    container.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-secondary);">${isVi ? 'Không có gói vay nào' : 'No packages found'}</div>`;
+                    return;
+                }
+
+                let html = '<table class="table" style="width:100%; font-size:0.9rem;">';
+                html += `<thead>
+                    <tr>
+                        <th>${isVi ? 'Ngân hàng' : 'Bank'}</th>
+                        <th>${isVi ? 'Gói vay' : 'Package'}</th>
+                        <th>${isVi ? 'Lãi suất' : 'Rate'}</th>
+                        <th>${isVi ? 'Hạn mức (VND)' : 'Limit (VND)'}</th>
+                        <th>${isVi ? 'Hành động' : 'Actions'}</th>
+                    </tr>
+                </thead><tbody>`;
+
+                db.forEach(b => {
+                    html += `<tr>
+                        <td><strong>🏦 ${b.name}</strong></td>
+                        <td>${b.packageName || '--'}</td>
+                        <td><span style="color:var(--success);font-weight:700;">${b.interestRate}%/năm</span></td>
+                        <td style="font-size:0.8rem;">${(b.minLoan || 0).toLocaleString('en-US')} - ${(b.maxLoan || 0).toLocaleString('en-US')}</td>
+                        <td>
+                            <div style="display:flex;gap:4px;">
+                                <button onclick="App.openEditBankModal(${b.id})" class="btn-xs" style="padding:4px 8px;font-size:0.75rem;cursor:pointer;">✏️</button>
+                                <button onclick="App.deleteBank(${b.id})" class="btn-xs btn-danger" style="padding:4px 8px;font-size:0.75rem;background:var(--danger);color:white;border:none;border-radius:4px;cursor:pointer;">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>`;
+                });
+
+                html += '</tbody></table>';
+                container.innerHTML = html;
+            },
+
+            openAddBankModal() {
+                this.editingBankId = null;
+                const modal = document.getElementById('bankModal');
+                const title = document.getElementById('modalTitle');
+                if (modal) {
+                    modal.style.display = 'block';
+                    if (title) title.textContent = this.currentLang === 'vi' ? 'Thêm Gói Vay' : 'Add Package';
+                    
+                    // Clear inputs
+                    document.getElementById('bankName').value = '';
+                    document.getElementById('bankPackageName').value = '';
+                    document.getElementById('bankInterestRate').value = '10';
+                    document.getElementById('bankProcessingFee').value = '0.5';
+                    document.getElementById('bankMaxTerm').value = '240';
+                    document.getElementById('bankMaxLTV').value = '70';
+                    document.getElementById('bankMinLoan').value = '50,000,000';
+                    document.getElementById('bankMaxLoan').value = '5,000,000,000';
+                    document.getElementById('bankMinIncome').value = '8,000,000';
+                    document.getElementById('bankSource').value = 'Manual';
+                    document.getElementById('bankPros').value = '';
+                    document.getElementById('bankCons').value = '';
+                    document.getElementById('bankRequirements').value = '';
+                }
+            },
+
+            openEditBankModal(id) {
+                const b = this.BANK_DATABASE.find(x => x.id === id);
+                if (!b) return;
+
+                this.editingBankId = id;
+                const modal = document.getElementById('bankModal');
+                const title = document.getElementById('modalTitle');
+                if (modal) {
+                    modal.style.display = 'block';
+                    if (title) title.textContent = this.currentLang === 'vi' ? 'Sửa Gói Vay' : 'Edit Package';
+                    
+                    document.getElementById('bankName').value = b.name || '';
+                    document.getElementById('bankPackageName').value = b.packageName || '';
+                    document.getElementById('bankInterestRate').value = b.interestRate || '';
+                    document.getElementById('bankProcessingFee').value = b.processingFee || '0';
+                    document.getElementById('bankMaxTerm').value = b.maxTerm || '';
+                    document.getElementById('bankMaxLTV').value = b.maxLTV || '';
+                    document.getElementById('bankMinLoan').value = (b.minLoan || 0).toLocaleString('en-US');
+                    document.getElementById('bankMaxLoan').value = (b.maxLoan || 0).toLocaleString('en-US');
+                    document.getElementById('bankMinIncome').value = (b.minIncome || 0).toLocaleString('en-US');
+                    document.getElementById('bankSource').value = b.source || 'Manual';
+                    document.getElementById('bankPros').value = b.pros || '';
+                    document.getElementById('bankCons').value = b.cons || '';
+                    document.getElementById('bankRequirements').value = b.requirements || '';
+                }
+            },
+
+            closeModal() {
+                const modal = document.getElementById('bankModal');
+                if (modal) modal.style.display = 'none';
+            },
+
+            saveBank() {
+                const name = document.getElementById('bankName').value.trim();
+                if (!name) {
+                    alert(this.currentLang === 'vi' ? 'Vui lòng nhập tên ngân hàng!' : 'Please enter bank name!');
+                    return;
+                }
+
+                const data = {
+                    name,
+                    packageName: document.getElementById('bankPackageName').value.trim(),
+                    interestRate: parseFloat(document.getElementById('bankInterestRate').value) || 10,
+                    processingFee: parseFloat(document.getElementById('bankProcessingFee').value) || 0,
+                    maxTerm: parseInt(document.getElementById('bankMaxTerm').value) || 120,
+                    maxLTV: parseInt(document.getElementById('bankMaxLTV').value) || 70,
+                    minLoan: this.parseNumber(document.getElementById('bankMinLoan').value),
+                    maxLoan: this.parseNumber(document.getElementById('bankMaxLoan').value),
+                    minIncome: this.parseNumber(document.getElementById('bankMinIncome').value),
+                    source: document.getElementById('bankSource').value.trim() || 'Manual',
+                    pros: document.getElementById('bankPros').value.trim(),
+                    cons: document.getElementById('bankCons').value.trim(),
+                    requirements: document.getElementById('bankRequirements').value.trim(),
+                    loanTypes: ["collateral"]
+                };
+
+                if (this.editingBankId === null) {
+                    // Add
+                    const maxId = this.BANK_DATABASE.reduce((max, b) => b.id > max ? b.id : max, 0);
+                    data.id = maxId + 1;
+                    this.BANK_DATABASE.push(data);
+                } else {
+                    // Update
+                    const idx = this.BANK_DATABASE.findIndex(x => x.id === this.editingBankId);
+                    if (idx !== -1) {
+                        data.id = this.editingBankId;
+                        this.BANK_DATABASE[idx] = data;
+                    }
+                }
+
+                this.persistAll();
+                this.updateBankListDisplay();
+                this.compareBankLoans();
+                this.closeModal();
+            },
+
+            deleteBank(id) {
+                const isVi = this.currentLang === 'vi';
+                if (confirm(isVi ? 'Bạn có chắc chắn muốn xóa gói vay này không?' : 'Are you sure you want to delete this package?')) {
+                    this.BANK_DATABASE = this.BANK_DATABASE.filter(x => x.id !== id);
+                    this.persistAll();
+                    this.updateBankListDisplay();
+                    this.compareBankLoans();
+                }
+            },
+
+            exportDatabase() {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.BANK_DATABASE, null, 2));
+                const downloadAnchor = document.createElement('a');
+                downloadAnchor.setAttribute("href", dataStr);
+                downloadAnchor.setAttribute("download", "financial_loans_db.json");
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                downloadAnchor.remove();
+            },
+
+            importDatabase() {
+                const isVi = this.currentLang === 'vi';
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.accept = '.json';
+                fileInput.onchange = e => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = evt => {
+                        try {
+                            const data = JSON.parse(evt.target.result);
+                            if (Array.isArray(data)) {
+                                this.BANK_DATABASE = data;
+                                this.persistAll();
+                                this.updateBankListDisplay();
+                                this.compareBankLoans();
+                                alert(isVi ? 'Nhập dữ liệu thành công!' : 'Import successful!');
+                            } else {
+                                alert(isVi ? 'Định dạng file không đúng!' : 'Invalid file format!');
+                            }
+                        } catch (err) {
+                            alert((isVi ? 'Lỗi khi đọc file: ' : 'Error reading file: ') + err.message);
+                        }
+                    };
+                    reader.readAsText(file);
+                };
+                fileInput.click();
+            },
+
+            resetToDefaultDatabase() {
+                const isVi = this.currentLang === 'vi';
+                if (confirm(isVi ? 'Bạn có chắc chắn muốn reset database về mặc định?' : 'Are you sure you want to reset the database to default?')) {
+                    this.BANK_DATABASE = [
+                        { id: 1, name: "Vietcombank", packageName: "Business Loan", interestRate: 4.6, processingFee: 0.5, maxTerm: 12, minLoan: 5e7, maxLoan: 3e10, maxLTV: 100, minIncome: 8e6, pros: "Low rate 4.6%/yr", cons: "Short term only", requirements: "Business plan", loanTypes: ["collateral"], source: "VCB" },
+                        { id: 2, name: "BIDV", packageName: "Working Capital", interestRate: 7.0, processingFee: 0.3, maxTerm: 12, minLoan: 3e7, maxLoan: 1e10, maxLTV: 100, minIncome: 7e6, pros: "Fast disbursement", cons: "Floating rate", requirements: "Business docs", loanTypes: ["collateral"], source: "BIDV" },
+                        { id: 3, name: "Techcombank", packageName: "SME Loan", interestRate: 5.99, processingFee: 0.8, maxTerm: 120, minLoan: 1e8, maxLoan: 8e9, maxLTV: 80, minIncome: 1e7, pros: "Preferential rate", cons: "High processing fee", requirements: "2Y financials", loanTypes: ["collateral"], source: "TCB" },
+                        { id: 4, name: "VPBank", packageName: "Business Loan", interestRate: 6.9, processingFee: 0.6, maxTerm: 120, minLoan: 5e7, maxLoan: 6e9, maxLTV: 75, minIncome: 8e6, pros: "Quick process", cons: "Processing fee", requirements: "Profitable ops", loanTypes: ["collateral"], source: "VPB" }
+                    ];
+                    this.persistAll();
+                    this.updateBankListDisplay();
+                    this.compareBankLoans();
+                }
+            },
             // ==================== UTILITY FUNCTIONS ====================
             formatNumberInput(el) { const v = el.value.replace(/[^0-9]/g, ''); el.value = v ? parseInt(v).toLocaleString('en-US') : ''; },
             parseNumber(v) { return typeof v === 'string' ? parseFloat(v.replace(/[^0-9]/g, '')) || 0 : parseFloat(v) || 0; },
