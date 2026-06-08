@@ -1104,21 +1104,27 @@
 
         #quickRiskResult * {
             color: white !important;
+            -webkit-text-fill-color: white !important;
         }
-          #dupontCard .dupont-container * {
+
+        #dupontCard .dupont-container * {
             color: #0f172a !important;
         }
-        
+
         #dupontCard .dupont-container {
             background: #f8fafc !important;
         }
-        
+
         body.dark #dupontCard .dupont-container * {
             color: #f1f5f9 !important;
         }
-        
+
         body.dark #dupontCard .dupont-container {
             background: #1e293b !important;
+        }
+
+        #quickRiskResult>div>div>div {
+            color: white !important;
         }
     </style>
 </head>
@@ -1427,10 +1433,6 @@
                         <div class="metric-value" id="profitMarginValue">--</div>
                         <div class="metric-label" data-translate="profitMargin">Biên LN</div>
                     </div>
-                    <div class="metric-card">
-                        <div class="metric-value" id="liquidityValue2">--</div>
-                        <div class="metric-label" data-translate="liquidity">Thanh khoản</div>
-                    </div>
                 </div>
                 <button onclick="App.quickRiskAssessment()" class="btn-purple btn-block btn-lg">🔍 <span
                         data-translate="runQuickRisk">ĐÁNH GIÁ RỦI RO</span></button>
@@ -1440,35 +1442,97 @@
 
         <!-- ==================== TAB 2: NPV & IRR ==================== -->
         <div id="tab2" class="tab-content">
+            <!-- Row 1: Input + Results + Break-even -->
             <div class="grid-2col">
                 <div class="card">
-                    <h2 data-translate="npvTitle">💹 NPV & IRR</h2>
+                    <h2 data-translate="npvTitle">💹 NPV &amp; IRR</h2>
+                    <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:10px;">Nhập dòng tiền từng năm (VND), phân cách bằng dấu phẩy. Năm 0 là vốn đầu tư ban đầu (số âm).</p>
                     <textarea id="cashflows" rows="4">-500000000,150000000,180000000,220000000,250000000</textarea>
-                    <label data-translate="discountRate">Lãi suất chiết khấu (%/năm)</label><input type="number"
-                        id="discountRate" value="10" step="0.5">
-                    <div class="btn-group" style="margin-top:12px"><button onclick="App.calculateNpvIrr()">🧮 <span
-                                data-translate="calcNpv">Tính NPV & IRR</span></button><button
-                            onclick="App.downloadCashflowTemplate()" class="btn-success">📥 <span
-                                data-translate="downloadTpl">Tải template</span></button></div>
-                    <div class="result-box">
-                        <div><strong>NPV:</strong> <span id="npvValue">--</span></div>
-                        <div><strong>IRR:</strong> <span id="irrValue">--</span></div>
-                        <div><strong data-translate="payback">Hoàn vốn:</strong> <span id="paybackPeriod">--</span>
-                            <span data-translate="years">năm</span>
+                    <label data-translate="discountRate">Lãi suất chiết khấu (%/năm)</label>
+                    <input type="number" id="discountRate" value="10" step="0.5">
+                    <div class="btn-group" style="margin-top:12px">
+                        <button onclick="App.calculateNpvIrr()">🧮 <span data-translate="calcNpv">Tính NPV &amp; IRR</span></button>
+                        <button onclick="App.downloadCashflowTemplate()" class="btn-success">📥 <span data-translate="downloadTpl">Tải template</span></button>
+                    </div>
+                    <!-- Enhanced Result KPI Cards -->
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:14px;">
+                        <div style="background:linear-gradient(135deg,rgba(37,99,235,0.1),rgba(37,99,235,0.04));border:1px solid rgba(37,99,235,0.25);border-radius:14px;padding:12px;text-align:center;">
+                            <div style="font-size:0.65rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;font-weight:700;">NPV</div>
+                            <div id="npvValue" style="font-size:1.05rem;font-weight:800;color:var(--primary);">--</div>
+                        </div>
+                        <div style="background:linear-gradient(135deg,rgba(16,185,129,0.1),rgba(16,185,129,0.04));border:1px solid rgba(16,185,129,0.25);border-radius:14px;padding:12px;text-align:center;">
+                            <div style="font-size:0.65rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;font-weight:700;">IRR</div>
+                            <div id="irrValue" style="font-size:1.05rem;font-weight:800;color:var(--success);">--</div>
+                        </div>
+                        <div style="background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(245,158,11,0.04));border:1px solid rgba(245,158,11,0.25);border-radius:14px;padding:12px;text-align:center;">
+                            <div style="font-size:0.65rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;font-weight:700;" data-translate="payback">Hoàn vốn</div>
+                            <div style="display:flex;align-items:baseline;justify-content:center;gap:3px;">
+                                <span id="paybackPeriod" style="font-size:1.05rem;font-weight:800;color:var(--warning);">--</span>
+                                <span style="font-size:0.7rem;color:var(--text-secondary);" data-translate="years">năm</span>
+                            </div>
                         </div>
                     </div>
-                    <div
-                        style="margin-top:16px;padding:16px;border:2px dashed var(--border);border-radius:16px;text-align:center">
-                        <label style="margin-top:0" data-translate="uploadExcel">📂 Tải file Excel</label><input
-                            type="file" id="cashflowFile" accept=".xlsx,.xls,.csv" style="margin-top:8px"><button
-                            onclick="App.loadCashflowFromFile()" style="margin-top:8px">📎 <span
-                                data-translate="readFile">Đọc file</span></button>
+                    <div style="margin-top:16px;padding:16px;border:2px dashed var(--border);border-radius:16px;text-align:center;">
+                        <label style="margin-top:0" data-translate="uploadExcel">📂 Tải file Excel</label>
+                        <input type="file" id="cashflowFile" accept=".xlsx,.xls,.csv" style="margin-top:8px">
+                        <button onclick="App.loadCashflowFromFile()" style="margin-top:8px">📎 <span data-translate="readFile">Đọc file</span></button>
                     </div>
                 </div>
                 <div class="card">
-                    <h2 data-translate="aiInsight">💡 AI Insight</h2>
-                    <div id="investmentInsight" class="insight-box"><span data-translate="calcPrompt">Tính NPV/IRR để
-                            nhận phân tích</span></div>
+                    <h2 data-translate="aiInsight">💡 AI Insight &amp; Đánh giá</h2>
+                    <div id="investmentInsight" class="insight-box"><span data-translate="calcPrompt">Tính NPV/IRR để nhận phân tích</span></div>
+                    <!-- Break-even Box -->
+                    <div id="breakevenBox" style="display:none;margin-top:14px;padding:14px;background:var(--bg);border-radius:14px;border:1px solid var(--border);">
+                        <div style="font-size:0.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">⚖️ Phân tích điểm hòa vốn</div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                            <div style="font-size:0.82rem;">
+                                <div style="color:var(--text-secondary);margin-bottom:2px;">💸 Tổng đầu tư ban đầu</div>
+                                <strong id="breakevenInitial">--</strong>
+                            </div>
+                            <div style="font-size:0.82rem;">
+                                <div style="color:var(--text-secondary);margin-bottom:2px;">💰 Tổng dòng tiền dương</div>
+                                <strong id="breakevenInflows">--</strong>
+                            </div>
+                            <div style="font-size:0.82rem;">
+                                <div style="color:var(--text-secondary);margin-bottom:2px;">📈 Lợi nhuận ròng dự án</div>
+                                <strong id="breakevenNetProfit" style="color:var(--success);">--</strong>
+                            </div>
+                            <div style="font-size:0.82rem;">
+                                <div style="color:var(--text-secondary);margin-bottom:2px;">🎯 ROI đơn giản</div>
+                                <strong id="breakevenROI" style="color:var(--secondary);">--</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 2: Cashflow Chart -->
+            <div class="card" style="margin-top:20px;">
+                <h3>📊 Biểu đồ Dòng tiền theo năm (Cashflow Waterfall)</h3>
+                <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:12px;">Trực quan hóa dòng tiền vào/ra và số dư tích lũy (Cumulative Cashflow) từng năm của dự án.</p>
+                <div id="cashflowChartWrapper" style="position:relative;height:280px;display:none;">
+                    <canvas id="cashflowChart"></canvas>
+                </div>
+                <div id="cashflowChartEmpty" style="text-align:center;padding:40px;color:var(--text-secondary);font-size:0.9rem;">
+                    📉 Nhập dòng tiền và bấm "Tính NPV &amp; IRR" để xem biểu đồ
+                </div>
+            </div>
+
+            <!-- Row 3: Sensitivity Analysis -->
+            <div class="card" style="margin-top:20px;">
+                <h3>🎯 Phân tích độ nhạy – NPV theo lãi suất chiết khấu</h3>
+                <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:12px;">NPV thay đổi như thế nào khi lãi suất chiết khấu biến động từ 2% đến 30%? Ô màu đỏ = NPV âm (dự án lỗ), xanh lá = NPV dương (có lời).</p>
+                <div id="sensitivityTable">
+                    <div style="text-align:center;padding:30px;color:var(--text-secondary);font-size:0.85rem;">📊 Tính NPV &amp; IRR để xem bảng phân tích độ nhạy</div>
+                </div>
+            </div>
+
+            <!-- Row 4: Scenario Analysis -->
+            <div class="card" style="margin-top:20px;">
+                <h3>🔮 Phân tích Kịch bản (Scenario Analysis)</h3>
+                <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:14px;">Mô phỏng NPV và IRR ở 3 kịch bản: Bi quan (−20% dòng tiền), Cơ sở (gốc) và Lạc quan (+20% dòng tiền).</p>
+                <div id="scenarioAnalysis">
+                    <div style="text-align:center;padding:30px;color:var(--text-secondary);font-size:0.85rem;">🔮 Tính NPV &amp; IRR để xem phân tích kịch bản</div>
                 </div>
             </div>
         </div>
@@ -2701,18 +2765,177 @@
             // ==================== NPV IRR ====================
             calculateNpvIrr() {
                 const text = document.getElementById('cashflows')?.value || '';
-                const flows = text.split(/[,\n]/).map(v => parseFloat(v.trim().replace(/[^0-9-]/g, ''))).filter(v => !isNaN(v));
+                const flows = text.split(/[,\n]/).map(v => parseFloat(v.trim().replace(/[^0-9.-]/g, ''))).filter(v => !isNaN(v));
                 if (!flows.length) return;
                 const dr = parseFloat(document.getElementById('discountRate')?.value) || 10;
-                const n = this.npv(flows, dr), i = this.irr(flows);
-                document.getElementById('npvValue').innerHTML = n.toLocaleString('en-US') + ' VND';
-                document.getElementById('irrValue').innerHTML = (isNaN(i) ? 'N/A' : i.toFixed(2)) + ' %';
-                let pb = '> ' + flows.length, cum = 0;
-                for (let idx = 0; idx < flows.length; idx++) { cum += flows[idx]; if (cum >= 0) { pb = (idx + (cum - flows[idx]) / flows[idx]).toFixed(1); break; } }
-                document.getElementById('paybackPeriod').innerHTML = pb;
+                const npvVal = this.npv(flows, dr);
+                const irrVal = this.irr(flows);
                 const isVi = this.currentLang === 'vi';
-                const insight = !isNaN(i) && i > dr && n > 0 ? (isVi ? '✅ NÊN ĐẦU TƯ' : '✅ INVEST') : n > 0 ? (isVi ? '⚠️ CÂN NHẮC' : '⚠️ CONSIDER') : (isVi ? '❌ KHÔNG NÊN' : '❌ AVOID');
-                document.getElementById('investmentInsight').innerHTML = `<div class="insight-box"><strong>${insight}</strong><br>IRR=${isNaN(i) ? 'N/A' : i.toFixed(2) + '%'} vs ${dr}%</div>`;
+
+                // ── Basic results ──
+                const fmt = v => (v >= 0 ? '' : '−') + Math.abs(v).toLocaleString('en-US') + ' ₫';
+                document.getElementById('npvValue').innerHTML = fmt(Math.round(npvVal));
+                document.getElementById('irrValue').innerHTML = isNaN(irrVal) ? 'N/A' : irrVal.toFixed(2) + '%';
+                let pb = '> ' + (flows.length - 1), cum = 0;
+                for (let idx = 0; idx < flows.length; idx++) {
+                    const prev = cum; cum += flows[idx];
+                    if (cum >= 0 && idx > 0) { pb = (idx - 1 + (prev < 0 ? Math.abs(prev) / flows[idx] : 0)).toFixed(1); break; }
+                }
+                document.getElementById('paybackPeriod').innerHTML = pb;
+
+                // ── AI Insight ──
+                let insightHtml = '';
+                const decision = !isNaN(irrVal) && irrVal > dr && npvVal > 0
+                    ? `<div style="font-size:1.5rem;font-weight:900;color:#10b981;">✅ NÊN ĐẦU TƯ</div>`
+                    : npvVal > 0
+                    ? `<div style="font-size:1.5rem;font-weight:900;color:#f59e0b;">⚠️ CÂN NHẮC</div>`
+                    : `<div style="font-size:1.5rem;font-weight:900;color:#ef4444;">❌ KHÔNG NÊN</div>`;
+                const reasonLines = [];
+                if (npvVal > 0) reasonLines.push(`✅ NPV dương (+${fmt(Math.round(npvVal))}) — dự án tạo ra giá trị tăng thêm.`);
+                else reasonLines.push(`❌ NPV âm (${fmt(Math.round(npvVal))}) — dự án phá huỷ giá trị.`);
+                if (!isNaN(irrVal)) {
+                    if (irrVal > dr) reasonLines.push(`✅ IRR (${irrVal.toFixed(1)}%) cao hơn lãi suất chiết khấu (${dr}%) — vượt ngưỡng sinh lời tối thiểu.`);
+                    else reasonLines.push(`⚠️ IRR (${irrVal.toFixed(1)}%) thấp hơn lãi suất chiết khấu (${dr}%) — chưa đủ sinh lời.`);
+                }
+                reasonLines.push(`📅 Thời gian hoàn vốn: <strong>${pb}</strong> năm.`);
+                insightHtml = `${decision}<div style="margin-top:10px;font-size:0.85rem;line-height:1.7;">${reasonLines.map(l => `<div>${l}</div>`).join('')}</div>`;
+                document.getElementById('investmentInsight').innerHTML = insightHtml;
+
+                // ── Break-even ──
+                const initInvest = flows.filter(f => f < 0).reduce((s, v) => s + Math.abs(v), 0);
+                const totalInflows = flows.filter(f => f > 0).reduce((s, v) => s + v, 0);
+                const netProfit = totalInflows - initInvest;
+                const roi = initInvest > 0 ? (netProfit / initInvest * 100) : 0;
+                const bkBox = document.getElementById('breakevenBox');
+                if (bkBox) {
+                    bkBox.style.display = 'block';
+                    document.getElementById('breakevenInitial').textContent = fmt(initInvest);
+                    document.getElementById('breakevenInflows').textContent = fmt(totalInflows);
+                    document.getElementById('breakevenNetProfit').textContent = fmt(netProfit);
+                    document.getElementById('breakevenNetProfit').style.color = netProfit >= 0 ? 'var(--success)' : 'var(--danger)';
+                    document.getElementById('breakevenROI').textContent = roi.toFixed(1) + '%';
+                }
+
+                // ── Cashflow Chart ──
+                const labels = flows.map((_, idx) => `Năm ${idx}`);
+                const cumulativeData = [];
+                let runSum = 0;
+                flows.forEach(f => { runSum += f; cumulativeData.push(runSum); });
+                const barColors = flows.map(f => f >= 0 ? 'rgba(16,185,129,0.75)' : 'rgba(239,68,68,0.75)');
+
+                const wrapper = document.getElementById('cashflowChartWrapper');
+                const empty = document.getElementById('cashflowChartEmpty');
+                if (wrapper) wrapper.style.display = 'block';
+                if (empty) empty.style.display = 'none';
+
+                if (this._cashflowChart) { this._cashflowChart.destroy(); this._cashflowChart = null; }
+                const ctx = document.getElementById('cashflowChart');
+                if (ctx) {
+                    this._cashflowChart = new Chart(ctx, {
+                        data: {
+                            labels,
+                            datasets: [
+                                {
+                                    type: 'bar', label: 'Dòng tiền (₫)',
+                                    data: flows, backgroundColor: barColors,
+                                    borderRadius: 6, yAxisID: 'y'
+                                },
+                                {
+                                    type: 'line', label: 'Tích lũy (₫)',
+                                    data: cumulativeData, borderColor: '#7c3aed',
+                                    backgroundColor: 'rgba(124,58,237,0.08)',
+                                    borderWidth: 2.5, pointRadius: 4,
+                                    pointBackgroundColor: cumulativeData.map(v => v >= 0 ? '#10b981' : '#ef4444'),
+                                    tension: 0.3, fill: true, yAxisID: 'y'
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true, maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: true, position: 'top' },
+                                tooltip: {
+                                    callbacks: {
+                                        label: ctx => ` ${ctx.dataset.label}: ${Number(ctx.raw).toLocaleString('en-US')} ₫`
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    ticks: { callback: v => (Math.abs(v) >= 1e9 ? (v/1e9).toFixed(1)+'B' : Math.abs(v) >= 1e6 ? (v/1e6).toFixed(0)+'M' : v) }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // ── Sensitivity Analysis Table ──
+                const rates = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 25, 28, 30];
+                let tblHtml = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
+                    <thead><tr style="background:rgba(37,99,235,0.1);">
+                        <th style="padding:8px 10px;text-align:left;border-radius:8px 0 0 0;">Lãi suất chiết khấu</th>
+                        <th style="padding:8px 10px;text-align:right;">NPV (₫)</th>
+                        <th style="padding:8px 10px;text-align:center;border-radius:0 8px 0 0;">Đánh giá</th>
+                    </tr></thead><tbody>`;
+                rates.forEach(r => {
+                    const n = this.npv(flows, r);
+                    const isBase = r === Math.round(dr);
+                    const posColor = 'rgba(16,185,129,0.12)';
+                    const negColor = 'rgba(239,68,68,0.12)';
+                    const bg = isBase ? 'rgba(37,99,235,0.15)' : (n >= 0 ? posColor : negColor);
+                    const status = n >= 0 ? '🟢 Có lời' : '🔴 Lỗ';
+                    tblHtml += `<tr style="border-bottom:1px solid var(--border);background:${bg}${isBase ? ';font-weight:700;' : ''}">
+                        <td style="padding:7px 10px;">${r}%${isBase ? ' ← Hiện tại' : ''}</td>
+                        <td style="padding:7px 10px;text-align:right;color:${n>=0?'var(--success)':'var(--danger)'}">${fmt(Math.round(n))}</td>
+                        <td style="padding:7px 10px;text-align:center;">${status}</td>
+                    </tr>`;
+                });
+                tblHtml += '</tbody></table></div>';
+                const sensEl = document.getElementById('sensitivityTable');
+                if (sensEl) sensEl.innerHTML = tblHtml;
+
+                // ── Scenario Analysis ──
+                const scenarios = [
+                    { label: '😟 Bi quan', factor: 0.80, color: '#ef4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.3)' },
+                    { label: '📊 Cơ sở', factor: 1.00, color: '#2563eb', bg: 'rgba(37,99,235,0.08)', border: 'rgba(37,99,235,0.3)' },
+                    { label: '😊 Lạc quan', factor: 1.20, color: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.3)' }
+                ];
+                let scenHtml = `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;">`;
+                scenarios.forEach(sc => {
+                    const adjFlows = flows.map((f, idx) => idx === 0 ? f : f * sc.factor);
+                    const sNpv = this.npv(adjFlows, dr);
+                    const sIrr = this.irr(adjFlows);
+                    let sPb = '> ' + (adjFlows.length - 1); let sCum = 0;
+                    for (let idx = 0; idx < adjFlows.length; idx++) {
+                        const prev = sCum; sCum += adjFlows[idx];
+                        if (sCum >= 0 && idx > 0) { sPb = (idx - 1 + (prev < 0 ? Math.abs(prev) / adjFlows[idx] : 0)).toFixed(1); break; }
+                    }
+                    const verdict = sNpv > 0 && (!isNaN(sIrr) && sIrr > dr) ? '✅ NÊN ĐẦU TƯ' : sNpv > 0 ? '⚠️ CÂN NHẮC' : '❌ KHÔNG NÊN';
+                    scenHtml += `
+                        <div style="border:1.5px solid ${sc.border};border-radius:16px;padding:18px;background:${sc.bg};text-align:center;">
+                            <div style="font-size:1.1rem;font-weight:800;color:${sc.color};margin-bottom:10px;">${sc.label}</div>
+                            <div style="font-size:0.7rem;color:var(--text-secondary);margin-bottom:2px;">Điều chỉnh dòng tiền</div>
+                            <div style="font-weight:700;margin-bottom:10px;">${sc.factor === 1 ? 'Gốc (100%)' : (sc.factor * 100).toFixed(0) + '%'}</div>
+                            <div style="background:var(--bg);border-radius:10px;padding:10px;margin-bottom:8px;">
+                                <div style="font-size:0.65rem;color:var(--text-secondary);margin-bottom:2px;">NPV</div>
+                                <div style="font-weight:800;color:${sNpv>=0?'var(--success)':'var(--danger)'};">${fmt(Math.round(sNpv))}</div>
+                            </div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">
+                                <div style="background:var(--bg);border-radius:10px;padding:8px;">
+                                    <div style="font-size:0.6rem;color:var(--text-secondary);">IRR</div>
+                                    <div style="font-weight:700;font-size:0.85rem;">${isNaN(sIrr) ? 'N/A' : sIrr.toFixed(1) + '%'}</div>
+                                </div>
+                                <div style="background:var(--bg);border-radius:10px;padding:8px;">
+                                    <div style="font-size:0.6rem;color:var(--text-secondary);">Hoàn vốn</div>
+                                    <div style="font-weight:700;font-size:0.85rem;">${sPb} năm</div>
+                                </div>
+                            </div>
+                            <div style="font-size:0.8rem;font-weight:700;color:${sc.color};">${verdict}</div>
+                        </div>`;
+                });
+                scenHtml += '</div>';
+                const scenEl = document.getElementById('scenarioAnalysis');
+                if (scenEl) scenEl.innerHTML = scenHtml;
             },
 
             downloadCashflowTemplate() { const ws = XLSX.utils.aoa_to_sheet([["Year 0", "Year 1", "Year 2"], [-5e8, 1.5e8, 1.8e8]]); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Template"); XLSX.writeFile(wb, "Cashflow_Template.xlsx"); },
