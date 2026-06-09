@@ -1127,7 +1127,7 @@
     <!-- LANDING PAGE -->
     <div id="landingPage" class="landing-page">
         <div class="landing-logo">🏦</div>
-        <h1 class="landing-title" id="landingTitle">Financial Analyzer Lite</h1>
+        <h1 class="landing-title" id="landingTitle">Financial Analyzer</h1>
         <p class="landing-subtitle" id="landingSubtitle">Nền tảng phân tích tài chính doanh nghiệp tiện lợi. Đánh giá
             rủi ro, so sánh ngân hàng, tối ưu dòng tiền và nhận tư vấn thông minh — tất cả trong một giao diện.</p>
         <div class="landing-features">
@@ -1158,7 +1158,7 @@
 
     <!-- NAVIGATION BAR -->
     <div id="navBar" class="nav-bar">
-        <div class="nav-logo">🏦 Financial Analyzer Lite</div>
+        <div class="nav-logo">🏦 Financial Analyzer</div>
         <div class="nav-actions">
             <button class="nav-btn btn-pdf-export" onclick="App.exportPDFReport()"><i class="fas fa-file-pdf"></i> <span
                     data-translate="exportPdf">Xuất PDF</span></button>
@@ -4132,7 +4132,7 @@
 
                     doc.setFont('Roboto', 'normal');
                     doc.setFontSize(10);
-                    doc.text(isVi ? 'Phân tích tự động bởi Financial Analyzer Lite' : 'Powered by Financial Analyzer Lite', 15, 30);
+                    doc.text(isVi ? 'Phân tích tự động bởi Financial Analyzer' : 'Powered by Financial Analyzer', 15, 30);
                     const dateStr = new Date().toLocaleDateString(isVi ? 'vi-VN' : 'en-US');
                     doc.text(`${isVi ? 'Ngày lập' : 'Date'}: ${dateStr}`, 160, 30);
 
@@ -4407,7 +4407,7 @@
             },
 
             initApp() {
-                console.log('✅ Initializing Financial Analyzer Lite...');
+                console.log('✅ Initializing Financial Analyzer...');
                 if (this.isDark) document.body.classList.add('dark');
                 document.getElementById('langLabel').textContent = this.currentLang === 'vi' ? 'Tiếng Việt' : 'English';
                 document.getElementById('themeLabel').textContent = this.currentLang === 'vi' ? (this.isDark ? 'Sáng' : 'Tối') : (this.isDark ? 'Light' : 'Dark');
@@ -4438,7 +4438,7 @@
                 this.fullRiskAssessment();
                 this.updateFinancialStatus();
                 this.quickRiskAssessment();
-                console.log('✅ Financial Analyzer Lite Ready.');
+                console.log('✅ Financial Analyzer Ready.');
             }
         };
 
