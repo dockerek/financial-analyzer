@@ -2615,7 +2615,7 @@
                 else if (icr >= 1.5) icrScore = 6;
                 else icrScore = 0;
                 score += icrScore;
-                details.push({ name: 'Khả năng trả lãi (ICR)', val: icr > 999 ? '∞' : icr.toFixed(1), benchmark: benchmarks.icr.desc, status: icrScore >= 10 ? '🟢 Tốt' : (icrScore >= 6 ? '🟡 Cảnh báo' : '🔴 Rủi ro')});
+                details.push({ name: 'Khả năng trả lãi (ICR)', val: icr > 999 ? '∞' : icr.toFixed(1), benchmark: benchmarks.icr.desc, status: icrScore >= 10 ? '🟢 Tốt' : (icrScore >= 6 ? '🟡 Cảnh báo' : '🔴 Rủi ro'),  citation: ''});
 
                 // 4. Net Margin (trọng số 15%)
                 let pmScore = 0;
@@ -2655,7 +2655,7 @@
                 else if (dscr >= 1.0) dscrScore = 6;
                 else dscrScore = 0;
                 score += dscrScore;
-                details.push({ name: 'Khả năng trả nợ (DSCR)', val: dscr > 999 ? 'N/A' : dscr.toFixed(2), benchmark: benchmarks.dscr.desc, status: dscrScore >= 10 ? '🟢 Tốt' : (dscrScore >= 6 ? '🟡 Cảnh báo' : '🔴 Rủi ro')});
+                details.push({ name: 'Khả năng trả nợ (DSCR)', val: dscr > 999 ? 'N/A' : dscr.toFixed(2), benchmark: benchmarks.dscr.desc, status: dscrScore >= 10 ? '🟢 Tốt' : (dscrScore >= 6 ? '🟡 Cảnh báo' : '🔴 Rủi ro'),  citation: ''});
 
                 // Cảnh báo và Điểm mạnh
                 let warnings = [];
