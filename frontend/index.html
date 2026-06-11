@@ -3909,379 +3909,184 @@ sendConsultantMessage() {
 
             // ==================== BCTC UPLOAD & PARSING ====================
     async handleBCTCUpload(event) {
-    const file = event.target.files && event.target.files[0];
-    if (!file) return;
+                const file = event.target.files?.[0];
+                if (!file) return;
 
-    const container = document.getElementById('uploadStatusContainer');
-    const statusText = document.getElementById('uploadStatusText');
-    const statusDetail = document.getElementById('uploadStatusDetail');
-    const uploadZone = document.getElementById('bctcUploadZone');
+                const container = document.getElementById('uploadStatusContainer');
+                const statusText = document.getElementById('uploadStatusText');
+                const statusDetail = document.getElementById('uploadStatusDetail');
+                const uploadZone = document.getElementById('bctcUploadZone');
 
-    if (container) container.style.display = 'block';
-    if (uploadZone) {
-        uploadZone.style.pointerEvents = 'none';
-        uploadZone.style.opacity = '0.5';
-    }
+                if (container) container.style.display = 'block';
+                if (uploadZone) {
+                    uploadZone.style.pointerEvents = 'none';
+                    uploadZone.style.opacity = '0.5';
+                }
 
-    try {
-        const isVi = this.currentLang === 'vi';
-        statusText.textContent = isVi ? 'Đang đọc file...' : 'Reading file...';
-        statusDetail.textContent = isVi ? 'Đang trích xuất dữ liệu thô...' : 'Extracting raw text...';
+                try {
+                    const isVi = this.currentLang === 'vi';
+                    statusText.textContent = isVi ? 'Đang đọc file...' : 'Reading file...';
+                    statusDetail.textContent = isVi ? 'Đang trích xuất dữ liệu thô...' : 'Extracting raw text...';
 
-        let text = '';
-        let processedFromExcel = false;
-        const extension = file.name.split('.').pop().toLowerCase();
+                    let text = '';
+                    const extension = file.name.split('.').pop().toLowerCase();
 
-        if (extension === 'pdf') {
-            statusDetail.textContent = isVi ? 'Đang đọc tài liệu PDF (sử dụng thư viện PDF.js)...' : 'Reading PDF document (using PDF.js)...';
-            text = await this.extractTextFromPDF(file);
-        } else if (extension === 'xlsx') {
-            statusDetail.textContent = isVi ? 'Đang đọc tài liệu Excel (sử dụng SheetJS)...' : 'Reading Excel sheet (using SheetJS)...';
+                    if (extension === 'pdf') {
+                        statusDetail.textContent = isVi ? 'Đang đọc tài liệu PDF (sử dụng thư viện PDF.js)...' : 'Reading PDF document (using PDF.js)...';
+                        text = await this.extractTextFromPDF(file);
+                    } else if (extension === 'xlsx') {
+                        statusDetail.textContent = isVi ? 'Đang đọc tài liệu Excel (sử dụng SheetJS)...' : 'Reading Excel sheet (using SheetJS)...';
+                        text = await this.extractTextFromExcel(file);
+                    } else {
+                        statusDetail.textContent = isVi ? 'Đang đọc tệp văn bản...' : 'Reading text file...';
+                        text = await this.extractTextFromTxt(file);
+                    }
 
-            // Parse Excel với quy tắc để trích xuất dữ liệu có cấu trúc
-            const parsedData = await this.parseExcelData(file);
-            const hasExcelFinancialValues = parsedData && [
-                'totalAssets', 'currentAssets', 'debt', 'monthlyRevenue', 'monthlyCOGS', 'monthlyOpex', 'monthlyDepreciation', 'loanAmount', 'loanTerm'
-            ].some(key => parsedData[key] !== null && parsedData[key] !== undefined);
+                    if (!text || text.trim().length === 0) {
+                        throw new Error(isVi ? 'Không trích xuất được văn bản nào từ file.' : 'Could not extract text from the file.');
+                    }
 
-            if (parsedData) {
-                // ✅ FIX: Chỉ merge những giá trị không phải null để bảo toàn dữ liệu cũ
-                const nonNullData = {};
-                for (const key in parsedData) {
-                    if (parsedData[key] !== null && parsedData[key] !== undefined) {
-                        nonNullData[key] = parsedData[key];
+                    statusText.textContent = isVi ? 'Đang phân tích bằng AI...' : 'Analyzing with AI...';
+                    statusDetail.textContent = isVi ? 'Đang gửi dữ liệu đến mô hình DeepSeek để chuẩn hóa BCTC...' : 'Sending data to DeepSeek to parse SME format...';
+
+                    // Call backend to parse BCTC
+                    const response = await fetch(`${API_URL}/ai/parse-bctc`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ text: text })
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || (isVi ? 'Lỗi kết nối server phân tích.' : 'Server communication error.'));
+                    }
+
+                    const result = await response.json();
+                    if (!result.success || !result.data) {
+                        throw new Error(result.error || (isVi ? 'AI không phân tích được dữ liệu.' : 'AI failed to parse details.'));
+                    }
+
+                    // Fill values in form
+                    this.fillFinancialForm(result.data);
+
+                    statusText.textContent = isVi ? '✅ Phân tích thành công!' : '✅ Analysis successful!';
+                    statusDetail.textContent = isVi ? 'Đã điền các chỉ số tài chính và cập nhật biểu đồ.' : 'Financial numbers have been populated and charts updated.';
+
+                    // Show success status temporarily
+                    setTimeout(() => {
+                        if (container) container.style.display = 'none';
+                        if (uploadZone) {
+                            uploadZone.style.pointerEvents = 'auto';
+                            uploadZone.style.opacity = '1.0';
+                        }
+                    }, 5000);
+
+                } catch (err) {
+                    console.error('BCTC upload error:', err);
+                    statusText.textContent = this.currentLang === 'vi' ? '❌ Lỗi phân tích' : '❌ Analysis error';
+                    statusDetail.textContent = err.message;
+
+                    // Allow retry
+                    if (uploadZone) {
+                        uploadZone.style.pointerEvents = 'auto';
+                        uploadZone.style.opacity = '1.0';
                     }
                 }
-                this.accumulatedFinancialData = { ...this.accumulatedFinancialData, ...nonNullData };
-            }
+            },
 
-            if (hasExcelFinancialValues) {
-                this.fillFinancialForm(this.accumulatedFinancialData);
-                processedFromExcel = true;
-            }
-
-            // Nếu không tìm thấy dữ liệu có cấu trúc, extract text để AI phân tích
-            if (!processedFromExcel) {
-                text = await this.extractTextFromExcel(file);
-            }
-        } else {
-            statusDetail.textContent = isVi ? 'Đang đọc tệp văn bản...' : 'Reading text file...';
-            text = await this.extractTextFromTxt(file);
-        }
-
-        // Nếu chưa process từ Excel, gửi đến AI để phân tích
-        if (!processedFromExcel) {
-            if (!text || text.trim().length === 0) {
-                throw new Error(isVi ? 'Không trích xuất được văn bản nào từ file.' : 'Could not extract text from the file.');
-            }
-
-            statusText.textContent = isVi ? 'Đang phân tích bằng AI...' : 'Analyzing with AI...';
-            statusDetail.textContent = isVi ? 'Đang gửi dữ liệu đến mô hình DeepSeek để chuẩn hóa BCTC...' : 'Sending data to DeepSeek to parse SME format...';
-
-            const response = await fetch(`${API_URL}/ai/parse-bctc`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: text })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || (isVi ? 'Lỗi kết nối server phân tích.' : 'Server communication error.'));
-            }
-
-            const result = await response.json();
-            if (!result.success || !result.data) {
-                throw new Error(result.error || (isVi ? 'AI không phân tích được dữ liệu.' : 'AI failed to parse details.'));
-            }
-
-            // ✅ FIX: Chỉ merge những giá trị không phải null từ AI
-            const aiData = {};
-            for (const key in result.data) {
-                if (result.data[key] !== null && result.data[key] !== undefined) {
-                    aiData[key] = result.data[key];
-                }
-            }
-            this.accumulatedFinancialData = { ...this.accumulatedFinancialData, ...aiData };
-            this.fillFinancialForm(this.accumulatedFinancialData);
-        }
-
-        statusText.textContent = isVi ? '✅ Phân tích thành công!' : '✅ Analysis successful!';
-        statusDetail.textContent = isVi ? 'Đã điền các chỉ số tài chính và cập nhật biểu đồ.' : 'Financial numbers have been populated and charts updated.';
-
-        setTimeout(() => {
-            if (container) container.style.display = 'none';
-            if (uploadZone) {
-                uploadZone.style.pointerEvents = 'auto';
-                uploadZone.style.opacity = '1.0';
-            }
-        }, 5000);
-    } catch (err) {
-        console.error('BCTC upload error:', err);
-        statusText.textContent = this.currentLang === 'vi' ? '❌ Lỗi phân tích' : '❌ Analysis error';
-        statusDetail.textContent = err.message;
-        if (uploadZone) {
-            uploadZone.style.pointerEvents = 'auto';
-            uploadZone.style.opacity = '1.0';
-        }
-    }
-},
-
-async extractTextFromPDF(file) {
-    const arrayBuffer = await file.arrayBuffer();
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    let text = '';
-    const maxPages = Math.min(pdf.numPages, 12);
-    for (let i = 1; i <= maxPages; i++) {
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        const pageText = content.items.map(item => item.str).join(' ');
-        text += `--- Trang ${i} ---\n` + pageText + '\n';
-    }
-    return text;
-},
-
-async extractTextFromExcel(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
+            async extractTextFromPDF(file) {
+                const arrayBuffer = await file.arrayBuffer();
+                // Configure workerSrc
+                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
                 let text = '';
-                workbook.SheetNames.forEach(sheetName => {
-                    text += `--- Sheet: ${sheetName} ---\n`;
-                    const sheet = workbook.Sheets[sheetName];
-                    const csv = XLSX.utils.sheet_to_csv(sheet);
-                    text += csv + '\n';
+                const maxPages = Math.min(pdf.numPages, 12); // Limit to first 12 pages
+                for (let i = 1; i <= maxPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const content = await page.getTextContent();
+                    const pageText = content.items.map(item => item.str).join(' ');
+                    text += `--- Trang ${i} ---\n` + pageText + '\n';
+                }
+                return text;
+            },
+
+            async extractTextFromExcel(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const data = new Uint8Array(e.target.result);
+                            const workbook = XLSX.read(data, { type: 'array' });
+                            let text = '';
+                            workbook.SheetNames.forEach(sheetName => {
+                                text += `--- Sheet: ${sheetName} ---\n`;
+                                const sheet = workbook.Sheets[sheetName];
+                                const csv = XLSX.utils.sheet_to_csv(sheet);
+                                text += csv + '\n';
+                            });
+                            resolve(text);
+                        } catch (err) {
+                            reject(err);
+                        }
+                    };
+                    reader.readAsArrayBuffer(file);
                 });
-                resolve(text);
-            } catch (err) {
-                reject(err);
-            }
-        };
-        reader.readAsArrayBuffer(file);
-    });
-},
+            },
 
-async parseExcelData(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
+            async extractTextFromTxt(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = (e) => reject(new Error('Cannot read text file'));
+                    reader.readAsText(file);
+                });
+            },
 
-                const result = {
-                    companyName: null,
-                    businessYears: null,
-                    employeeCount: null,
-                    totalAssets: null,
-                    currentAssets: null,
-                    debt: null,
-                    collateralValue: null,
-                    monthlyRevenue: null,
-                    monthlyCOGS: null,
-                    monthlyOpex: null,
-                    monthlyDepreciation: null,
-                    interestExpense: null,
-                    loanAmount: null,
-                    loanTerm: null
-                };
-
-                const assignValue = (field, value, allowOverride = false) => {
-                    if (value === null || value === undefined) return;
-                    if (result[field] === null || result[field] === undefined || allowOverride) {
-                        result[field] = value;
-                    }
-                };
-
-                const findNumericValue = (sheetData, rowIndex, colIndex) => {
-                    const row = sheetData[rowIndex] || [];
-                    for (let c = colIndex + 1; c < row.length; c++) {
-                        const candidate = this.parseExcelNumber(row[c]);
-                        if (candidate !== null) return candidate;
-                    }
-                    for (let c = colIndex - 1; c >= 0; c--) {
-                        const candidate = this.parseExcelNumber(row[c]);
-                        if (candidate !== null) return candidate;
-                    }
-                    for (let r = rowIndex + 1; r < sheetData.length; r++) {
-                        const candidate = this.parseExcelNumber((sheetData[r] || [])[colIndex]);
-                        if (candidate !== null) return candidate;
-                    }
-                    for (let r = rowIndex - 1; r >= 0; r--) {
-                        const candidate = this.parseExcelNumber((sheetData[r] || [])[colIndex]);
-                        if (candidate !== null) return candidate;
-                    }
-                    return null;
-                };
-
-                const isValidLabelCell = (cell) => {
-                    if (cell === null || cell === undefined) return false;
-                    const text = String(cell).trim();
-                    if (text === '') return false;
-                    return !/^[\d.,\-()+\s]+$/.test(text);
-                };
-
-                const parseLabel = (text) => this.cleanText(String(text));
-                const isBalanceSheet = (name) => /balance|bilan|bang can doi|bang can doi ke toan|bang can doi tai san|tai san|balanc|sheet/.test(name);
-                const isIncomeSheet = (name) => /income|statement|pl|profit|loss|ket qua|kqkd|bao cao ket qua|ket qua kinh doanh/.test(name);
-                const revenueLabels = ['doanh thu', 'revenue', 'sales', 'total revenue', 'doanh thu ban hang', 'doanh thu thuan'];
-                const cogsLabels = ['gia von', 'cost of goods sold', 'cogs', 'gia von hang ban', 'gia von ban hang'];
-                const opexLabels = ['chi phi ban hang', 'selling expense', 'chi phi quan ly', 'general and administrative', 'quan ly doanh nghiep', 'operating expense', 'chi phi hoat dong', 'selling & administrative', 'sg&a', 'chi phi ban hang va quan ly', 'chi phi quan ly doanh nghiep', 'chi phi van hanh'];
-                const depreciationLabels = ['khau hao', 'depreciation', 'amortization'];
-                const interestExpenseLabels = ['chi phi lai vay', 'interest expense', 'financial expense', 'chi phi tai chinh'];
-
-                for (const sheetName of workbook.SheetNames) {
-                    const sheet = workbook.Sheets[sheetName];
-                    const sheetData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-                    const normalizedSheetName = this.cleanText(sheetName || '');
-                    const isBalance = isBalanceSheet(normalizedSheetName);
-                    const isIncome = isIncomeSheet(normalizedSheetName);
-
-                    for (let rowIndex = 0; rowIndex < sheetData.length; rowIndex++) {
-                        const row = sheetData[rowIndex] || [];
-                        for (let colIndex = 0; colIndex < row.length; colIndex++) {
-                            const cell = row[colIndex];
-                            if (!isValidLabelCell(cell)) continue;
-
-                            const label = parseLabel(cell);
-                            const value = findNumericValue(sheetData, rowIndex, colIndex);
-                            if (value === null) continue;
-
-                            if (label.includes('tên cong ty') || label.includes('company name')) {
-                                assignValue('companyName', String(cell).trim());
-                            }
-                            if (label.includes('nam hoat dong') || label.includes('years in business')) {
-                                assignValue('businessYears', parseInt(value));
-                            }
-                            if (label.includes('so nhan vien') || label.includes('employees')) {
-                                assignValue('employeeCount', parseInt(value));
-                            }
-                            if (label.includes('so tien vay') || label.includes('loan amount')) {
-                                assignValue('loanAmount', value);
-                            }
-                            if (label.includes('thoi han vay') || label.includes('loan term')) {
-                                assignValue('loanTerm', parseInt(value));
-                            }
-
-                            if (label.includes('tong tai san') || label.includes('total assets')) {
-                                assignValue('totalAssets', value);
-                            }
-                            if (label.includes('tai san ngan han') || label.includes('current assets')) {
-                                assignValue('currentAssets', value);
-                            }
-                            if (label.includes('tong no') || label.includes('total liabilities') || label.includes('no phai tra') || label.includes('total debt')) {
-                                assignValue('debt', value);
-                            }
-                            if (label.includes('tai san dam bao') || label.includes('collateral')) {
-                                assignValue('collateralValue', value);
-                            }
-
-                            const hasRevenue = revenueLabels.some(term => label.includes(term)) && !/loi nhuan|profit|gross|ben gop/.test(label);
-                            const hasCOGS = cogsLabels.some(term => label.includes(term));
-                            const hasOpex = opexLabels.some(term => label.includes(term));
-                            const hasDep = depreciationLabels.some(term => label.includes(term));
-                            const hasInterest = interestExpenseLabels.some(term => label.includes(term));
-
-                            if (hasRevenue) {
-                                assignValue('monthlyRevenue', Math.round(value / 12));
-                            }
-                            if (hasCOGS) {
-                                assignValue('monthlyCOGS', Math.round(value / 12));
-                            }
-                            if (hasOpex && !hasInterest) {
-                                assignValue('monthlyOpex', (result.monthlyOpex || 0) + Math.round(value / 12), true);
-                            }
-                            if (hasDep) {
-                                assignValue('monthlyDepreciation', Math.round(value / 12));
-                            }
-                            if (hasInterest) {
-                                assignValue('interestExpense', value, true);
-                            }
+            fillFinancialForm(data) {
+                const setVal = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (el && val !== undefined && val !== null) {
+                        if (el.tagName === 'INPUT' && el.type === 'text') {
+                            el.value = Math.round(val).toLocaleString('en-US');
+                        } else {
+                            el.value = val;
                         }
                     }
+                };
+
+                if (data.companyName) setVal('companyName', data.companyName);
+                if (data.businessYears) setVal('businessYears', data.businessYears);
+                if (data.employeeCount) setVal('employeeCount', data.employeeCount);
+                if (data.totalAssets) setVal('totalAssets', data.totalAssets);
+                if (data.currentAssets) setVal('currentAssets', data.currentAssets);
+                if (data.debt) setVal('debt', data.debt);
+
+                // Monthly Income Statement items
+                if (data.monthlyRevenue) setVal('monthlyRevenue', data.monthlyRevenue);
+                if (data.monthlyCOGS) setVal('monthlyCOGS', data.monthlyCOGS);
+                if (data.monthlyOpex) setVal('monthlyOpex', data.monthlyOpex);
+                if (data.monthlyDepreciation) setVal('monthlyDepreciation', data.monthlyDepreciation);
+
+                // Loan options
+                if (data.loanAmount) setVal('loanAmount', data.loanAmount);
+                if (data.loanTerm) setVal('loanTerm', data.loanTerm);
+                if (data.collateralValue) setVal('collateralValue', data.collateralValue);
+
+                // Store DuPont AI analysis results if present
+                if (data.dupontAnalysis) {
+                    this.lastAiDuPont = data.dupontAnalysis;
+                } else {
+                    this.lastAiDuPont = null;
                 }
 
-                resolve(result);
-            } catch (err) {
-                reject(err);
-            }
-        };
-        reader.readAsArrayBuffer(file);
-    });
-},
-
-cleanText(text) {
-    if (!text) return '';
-    return String(text).toLowerCase().trim().normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^\w\s]/g, ' ');
-},
-
-parseExcelNumber(value) {
-    if (value === null || value === undefined || value === '') return null;
-    if (typeof value === 'number') return value;
-
-    let text = String(value).trim();
-    if (text === '') return null;
-    const isNegative = /^\(?\s*[-+]?([0-9.,\s]+)\s*\)?$/.test(text) && text.startsWith('(') && text.endsWith(')');
-    text = text.replace(/[()]/g, '');
-    text = text.replace(/\s+/g, '');
-    const cleaned = text.replace(/\./g, '').replace(',', '.').replace(/[^0-9.-]/g, '');
-    const num = parseFloat(cleaned);
-    return isNaN(num) ? null : (isNegative ? -num : num);
-},
-
-async extractTextFromTxt(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target.result);
-        reader.onerror = (e) => reject(new Error('Cannot read text file'));
-        reader.readAsText(file);
-    });
-},
-
-fillFinancialForm(data) {
-    const setVal = (id, val) => {
-        const el = document.getElementById(id);
-        if (el && val !== undefined && val !== null) {
-            if (el.tagName === 'INPUT' && el.type === 'text') {
-                el.value = Math.round(val).toLocaleString('en-US');
-            } else {
-                el.value = val;
-            }
-        }
-    };
-
-    if (data.companyName !== undefined && data.companyName !== null) setVal('companyName', data.companyName);
-    if (data.businessYears !== undefined && data.businessYears !== null) setVal('businessYears', data.businessYears);
-    if (data.employeeCount !== undefined && data.employeeCount !== null) setVal('employeeCount', data.employeeCount);
-    if (data.totalAssets !== undefined && data.totalAssets !== null) setVal('totalAssets', data.totalAssets);
-    if (data.currentAssets !== undefined && data.currentAssets !== null) setVal('currentAssets', data.currentAssets);
-    if (data.debt !== undefined && data.debt !== null) setVal('debt', data.debt);
-
-    if (data.monthlyRevenue !== undefined && data.monthlyRevenue !== null) setVal('monthlyRevenue', data.monthlyRevenue);
-    if (data.monthlyCOGS !== undefined && data.monthlyCOGS !== null) setVal('monthlyCOGS', data.monthlyCOGS);
-    if (data.monthlyOpex !== undefined && data.monthlyOpex !== null) setVal('monthlyOpex', data.monthlyOpex);
-    if (data.monthlyDepreciation !== undefined && data.monthlyDepreciation !== null) setVal('monthlyDepreciation', data.monthlyDepreciation);
-
-    if (data.loanAmount !== undefined && data.loanAmount !== null) setVal('loanAmount', data.loanAmount);
-    if (data.loanTerm !== undefined && data.loanTerm !== null) setVal('loanTerm', data.loanTerm);
-    if (data.collateralValue !== undefined && data.collateralValue !== null) setVal('collateralValue', data.collateralValue);
-
-    if (data.dupontAnalysis) {
-        this.lastAiDuPont = data.dupontAnalysis;
-    } else {
-        this.lastAiDuPont = null;
-    }
-
-    this.calcIS();
-    this.syncData();
-    this.quickRiskAssessment();
-    this.fullRiskAssessment();
-},
+                // Trigger calculation updates
+                this.calcIS();
+                this.syncData();
+                this.quickRiskAssessment();
+                this.fullRiskAssessment();
+            },
 
             // ==================== PDF REPORT EXPORT ====================
             async exportPDFReport() {
