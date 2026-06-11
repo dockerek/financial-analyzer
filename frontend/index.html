@@ -4045,60 +4045,48 @@ async handleBCTCUpload(event) {
             },
 
            fillFinancialForm(data) {
-    const setValIfEmpty = (id, val) => {
-        const el = document.getElementById(id);
-        if (el && val !== undefined && val !== null) {
-            const currentValue = el.value;
-            // Kiểm tra nếu ô đang trống hoặc đang là giá trị mặc định
-            const isEmpty = !currentValue || 
-                           currentValue === '0' || 
-                           currentValue === '' || 
-                           currentValue === '--' ||
-                           currentValue === '0đ' ||
-                           currentValue === '0 VND';
-            
-            if (isEmpty) {
-                if (el.tagName === 'INPUT' && el.type === 'text') {
-                    el.value = Math.round(val).toLocaleString('en-US');
+                const setVal = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (el && val !== undefined && val !== null) {
+                        if (el.tagName === 'INPUT' && el.type === 'text') {
+                            el.value = Math.round(val).toLocaleString('en-US');
+                        } else {
+                            el.value = val;
+                        }
+                    }
+                };
+
+                if (data.companyName) setVal('companyName', data.companyName);
+                if (data.businessYears) setVal('businessYears', data.businessYears);
+                if (data.employeeCount) setVal('employeeCount', data.employeeCount);
+                if (data.totalAssets) setVal('totalAssets', data.totalAssets);
+                if (data.currentAssets) setVal('currentAssets', data.currentAssets);
+                if (data.debt) setVal('debt', data.debt);
+
+                // Monthly Income Statement items
+                if (data.monthlyRevenue) setVal('monthlyRevenue', data.monthlyRevenue);
+                if (data.monthlyCOGS) setVal('monthlyCOGS', data.monthlyCOGS);
+                if (data.monthlyOpex) setVal('monthlyOpex', data.monthlyOpex);
+                if (data.monthlyDepreciation) setVal('monthlyDepreciation', data.monthlyDepreciation);
+
+                // Loan options
+                if (data.loanAmount) setVal('loanAmount', data.loanAmount);
+                if (data.loanTerm) setVal('loanTerm', data.loanTerm);
+                if (data.collateralValue) setVal('collateralValue', data.collateralValue);
+
+                // Store DuPont AI analysis results if present
+                if (data.dupontAnalysis) {
+                    this.lastAiDuPont = data.dupontAnalysis;
                 } else {
-                    el.value = val;
+                    this.lastAiDuPont = null;
                 }
-            }
-        }
-    };
 
-    if (data.companyName) setValIfEmpty('companyName', data.companyName);
-    if (data.businessYears) setValIfEmpty('businessYears', data.businessYears);
-    if (data.employeeCount) setValIfEmpty('employeeCount', data.employeeCount);
-    if (data.totalAssets) setValIfEmpty('totalAssets', data.totalAssets);
-    if (data.currentAssets) setValIfEmpty('currentAssets', data.currentAssets);
-    if (data.debt) setValIfEmpty('debt', data.debt);
-
-    // Monthly Income Statement items
-    if (data.monthlyRevenue) setValIfEmpty('monthlyRevenue', data.monthlyRevenue);
-    if (data.monthlyCOGS) setValIfEmpty('monthlyCOGS', data.monthlyCOGS);
-    if (data.monthlyOpex) setValIfEmpty('monthlyOpex', data.monthlyOpex);
-    if (data.monthlyDepreciation) setValIfEmpty('monthlyDepreciation', data.monthlyDepreciation);
-
-    // Loan options
-    if (data.loanAmount) setValIfEmpty('loanAmount', data.loanAmount);
-    if (data.loanTerm) setValIfEmpty('loanTerm', data.loanTerm);
-    if (data.collateralValue) setValIfEmpty('collateralValue', data.collateralValue);
-
-    // Store DuPont AI analysis results if present
-    if (data.dupontAnalysis) {
-        this.lastAiDuPont = data.dupontAnalysis;
-    } else {
-        this.lastAiDuPont = null;
-    }
-
-    // Trigger calculation updates
-    this.calcIS();
-    this.syncData();
-    this.quickRiskAssessment();
-    this.fullRiskAssessment();
-},
-
+                // Trigger calculation updates
+                this.calcIS();
+                this.syncData();
+                this.quickRiskAssessment();
+                this.fullRiskAssessment();
+            },
             // ==================== PDF REPORT EXPORT ====================
             async exportPDFReport() {
                 const isVi = this.currentLang === 'vi';
